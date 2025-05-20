@@ -36,10 +36,9 @@ func main() {
 	// fmt.Println(buffer)
 	// fmt.Println(messageRequest.MessageSize(), messageRequest.RequestHeader().RequestApiKey(), messageRequest.RequestHeader().RequestApiVersion(), messageRequest.RequestHeader().CorrelationId())
 
-	messageSize := int32(0)
 	correlationId := messageRequest.RequestHeader().CorrelationId()
-
-	mr := responsemodels.NewMessageResponse(messageSize, correlationId)
+	apiVersion := messageRequest.RequestHeader().RequestApiVersion()
+	mr := responsemodels.NewMessageResponse(correlationId, apiVersion)
 	conn.Write(mr.GetBytes())
 	if err != nil {
 		fmt.Println("Error accepting connection: ", err.Error())

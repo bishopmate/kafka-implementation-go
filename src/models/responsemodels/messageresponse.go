@@ -8,11 +8,11 @@ import (
 type MessageResponse struct {
 	responseSize  int32
 	correlationId int32
-	errorCode int16
-	arraySize int8
-	apiKey int16
-	minVersion int16
-	maxVersion int16
+	errorCode     int16
+	arraySize     int8
+	apiKey        int16
+	minVersion    int16
+	maxVersion    int16
 }
 
 func (mr *MessageResponse) ResponseSize() int32 {
@@ -24,27 +24,42 @@ func (mr *MessageResponse) CorrelationId() int32 {
 }
 
 func (mr *MessageResponse) GetBytes() []byte {
+	messageBuf := new(bytes.Buffer)
+	_ = binary.Write(messageBuf, binary.BigEndian, mr.correlationId)
+	_ = binary.Write(messageBuf, binary.BigEndian, mr.errorCode)
+	_ = binary.Write(messageBuf, binary.BigEndian, mr.arraySize)
+	_ = binary.Write(messageBuf, binary.BigEndian, mr.apiKey)
+	_ = binary.Write(messageBuf, binary.BigEndian, mr.minVersion)
+	_ = binary.Write(messageBuf, binary.BigEndian, mr.maxVersion)
+	_ = binary.Write(messageBuf, binary.BigEndian, int8(0))  // tagged fileds
+	_ = binary.Write(messageBuf, binary.BigEndian, int32(0)) // throttle time
+	_ = binary.Write(messageBuf, binary.BigEndian, int8(0))  // tagged fileds
+
+	mr.responseSize = int32(messageBuf.Len())
+
+	// responseBuf = message size buffer + message buffer
 	responseBuf := new(bytes.Buffer)
 	_ = binary.Write(responseBuf, binary.BigEndian, mr.responseSize)
-	_ = binary.Write(responseBuf, binary.BigEndian, mr.correlationId)
-	_ = binary.Write(responseBuf, binary.BigEndian, mr.errorCode)
-	_ = binary.Write(responseBuf, binary.BigEndian, mr.arraySize)
-	_ = binary.Write(responseBuf, binary.BigEndian, mr.apiKey)
-	_ = binary.Write(responseBuf, binary.BigEndian, mr.minVersion)
-	_ = binary.Write(responseBuf, binary.BigEndian, mr.maxVersion)
-	
+	_ = binary.Write(responseBuf, binary.BigEndian, messageBuf.Bytes())
+
+	// fmt.Println(responseBuf.Bytes())
+
 	return responseBuf.Bytes()
 }
 
-func NewMessageResponse(responseSize int32, correlationId int32) *MessageResponse {
+func NewMessageResponse(correlationId int32, apiVersion int16) *MessageResponse {
+	errorCode := int16(0)
+	if apiVersion < 0 || apiVersion > 4 {
+		errorCode = 35
+	}
 	mr := &MessageResponse{
 		correlationId: correlationId,
-		errorCode: 0,
-		arraySize: 1,
-		apiKey: 18,
-		minVersion: 0,
-		maxVersion: 4,
+		errorCode:     errorCode,
+		arraySize:     2,
+		apiKey:        18,
+		minVersion:    3,
+		maxVersion:    4,
 	}
-	mr.responseSize = int32(binary.Size(mr.correlationId) + binary.Size(mr.errorCode) + binary.Size(mr.arraySize) +binary.Size(mr.apiKey) + binary.Size(mr.minVersion) + binary.Size(mr.maxVersion))
+
 	return mr
 }
