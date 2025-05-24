@@ -20,28 +20,31 @@ func main() {
 		os.Exit(1)
 	}
 	defer l.Close()
-	// fmt.Printf("Type: %T\n", l)
 	
-
-	conn, err := l.Accept()
-	if err != nil{
-		fmt.Println("Failed to accept incoming connection on port 9092")
-		os.Exit(1)
+	for{
+		conn, err := l.Accept()
+		if err != nil{
+			fmt.Println("Failed to accept incoming connection on port 9092")
+			os.Exit(1)
+		}
+		go handleConnection(conn)
 	}
+	
+}
+
+func handleConnection(conn net.Conn){
 	defer conn.Close()
-	buffer := make([]byte, 1024)
-	conn.Read(buffer)
-	messageRequest := requestmodels.NewMessageRequestV2(buffer)
-	
-	// fmt.Println(buffer)
-	// fmt.Println(messageRequest.MessageSize(), messageRequest.RequestHeader().RequestApiKey(), messageRequest.RequestHeader().RequestApiVersion(), messageRequest.RequestHeader().CorrelationId())
+	for{
+		buffer := make([]byte, 1024)
+		conn.Read(buffer)
+		messageRequest := requestmodels.NewMessageRequestV2(buffer)
+		
+		// fmt.Println(buffer)
+		// fmt.Println(messageRequest.MessageSize(), messageRequest.RequestHeader().RequestApiKey(), messageRequest.RequestHeader().RequestApiVersion(), messageRequest.RequestHeader().CorrelationId())
 
-	correlationId := messageRequest.RequestHeader().CorrelationId()
-	apiVersion := messageRequest.RequestHeader().RequestApiVersion()
-	mr := responsemodels.NewMessageResponse(correlationId, apiVersion)
-	conn.Write(mr.GetBytes())
-	if err != nil {
-		fmt.Println("Error accepting connection: ", err.Error())
-		os.Exit(1)
-	}
+		correlationId := messageRequest.RequestHeader().CorrelationId()
+		apiVersion := messageRequest.RequestHeader().RequestApiVersion()
+		mr := responsemodels.NewMessageResponse(correlationId, apiVersion)
+		conn.Write(mr.GetBytes())
+	}	
 }
